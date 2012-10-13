@@ -1,4 +1,4 @@
 sicp-exercises
 ==============
 
-A repo for storing my attempts at exercises from the Structure and Interpretation of Computer Programs
+Working through the Structure and Interpretation of Computer Programs

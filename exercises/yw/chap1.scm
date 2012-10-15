@@ -113,3 +113,23 @@
 	((= x n) 1)
 	(else (+ (pascal-element (- n 1) x)
 		 (pascal-element (- n 1) (- x 1))))))
+
+;; SEC 1.2.4 Exponentiation
+
+;; Ex 1.16
+;; Design a procedure that evolves an interative exponentiation process
+;; that uses successive squaring and uses a logarithmic number of steps.
+
+(define (fast-expt b n)
+  (define (even? x)
+    (= (remainder x 2) 0))
+  (define (fast-expt-iter b counter a)
+    (display (* a b))
+    (display " ")
+    (cond ((= counter 0) a)
+	  ((even? counter) (fast-expt-iter (square b) (/ counter 2) a))
+	  (else (fast-expt-iter b (- counter 1) (* a b)))))
+  (fast-expt-iter b n 1))
+
+
+

@@ -1,3 +1,5 @@
+#lang scheme
+
 ;; SICP - CHAPTER 1
 
 ;; SEC 1.1.6 Conditional Expressions and Predicates
@@ -24,8 +26,6 @@
   (cond (predicate then-clause)
 	(else else-clause)))
 
-(define (square x) (* x x))
-
 (define (abs x)
   (if (< x 0)
       (- x)
@@ -50,13 +50,7 @@
 ;; Making a procedure to solve cube roots
 ;; using Newton's method of successive approximations.
 
-(define (square x) (* x x))
 (define (cube x) (* x (square x)))
-
-(define (abs x)
-  (if (< x 0)
-      (- x)
-      x))
 
 (define (cbimp x y)
   (/ (+ (/ x (square y)) (* 2 y)) 3))
@@ -120,9 +114,10 @@
 ;; Design a procedure that evolves an interative exponentiation process
 ;; that uses successive squaring and uses a logarithmic number of steps.
 
+(define (even? x)
+  (= (remainder x 2) 0))
+
 (define (fast-expt b n)
-  (define (even? x)
-    (= (remainder x 2) 0))
   (define (fast-expt-iter b counter a)
     (display (* a b))
     (display " ")
@@ -131,5 +126,24 @@
 	  (else (fast-expt-iter b (- counter 1) (* a b)))))
   (fast-expt-iter b n 1))
 
+;; Ex 1.17
 
+(define (double x)
+  (* x 2))
+(define (halve x)
+  (/ x 2))
 
+(define (fast-* a b)
+  (cond ((= b 0) 0)
+        ((even? b) (double (fast-* a (halve b))))
+        (else (+ a (fast-* a (- b 1))))))
+
+;; Ex 1.18
+
+(define (faster-* a b)
+  (fast-*-iter a b 0))
+
+(define (fast-*-iter a b sum)
+  (cond ((= b 0) sum)
+        ((even? b) (fast-*-iter (double a) (halve b) sum))
+        (else (fast-*-iter a (- b 1) (+ sum a)))))

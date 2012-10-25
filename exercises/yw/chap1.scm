@@ -50,7 +50,7 @@
 ;; Making a procedure to solve cube roots
 ;; using Newton's method of successive approximations.
 
-(define (cube x) (* x (square x)))
+(define (cube x) (* x x x))
 
 (define (cbimp x y)
   (/ (+ (/ x (square y)) (* 2 y)) 3))
@@ -356,3 +356,121 @@
 ;; all the Carmichael numbers listed above -- but not
 ;; without some trying! Had to run "try-it" several thousand
 ;; times to get a negative result! But eventually got it for all of em.
+
+;; SEC 1.3.1 Procedures as Arguments
+
+;; Ex 1.29
+
+(define (simpsons-int f a b n)
+  (define h (/ (- b a) n))
+  (define (simpsons-sum f a b n k)
+    (define (next a)
+      (+ a h))
+    (cond ((> k n) 0)
+          ((or (= k 0) (= k n))
+           (+ (f a)
+              (simpsons-sum f (next a) b n (+ k 1))))
+          ((even? k)
+           (+ (* 2 (f a))
+              (simpsons-sum f (next a) b n (+ k 1))))
+          (else
+           (+ (* 4 (f a))
+              (simpsons-sum f (next a) b n (+ k 1))))))
+  (* (simpsons-sum f a b n 0)
+     (/ h 3)))
+
+;; Ex 1.30
+
+(define (sum term a next b)
+  (define (iter a result)
+    (if (> a b)
+        result
+        (iter (next a) (+ (term a) result))))
+  (iter a 0))
+
+;; Ex 1.31
+
+;; a)
+
+(define (product term a next b)
+  (define (iter a result)
+    (if (> a b)
+        result
+        (iter (next a) (* (term a) result))))
+  (iter a 1))
+
+(define (factorial a)
+  (define (identity x) x)
+  (define (next x) (+ x 1))
+  (product identity 1 next a))
+
+(define (pi-approx limit)
+  (define (next a) (+ a 2))
+  (if (even? limit)
+      (* (* 2 (- limit 1))
+         (/ (product square 2.0 next (- limit 1))
+            (product square 3.0 next limit)))
+      (* (* 2 limit)
+         (/ (product square 2.0 next (- limit 1))
+            (product square 3.0 next limit)))))
+
+;; b)
+
+(define (product2 term a next b)
+  (if (> a b)
+      1
+      (* (term a)
+         (product2 term (next a) next b))))
+
+(define (factorial2 a)
+  (define (identity x) x)
+  (define (next x) (+ x 1))
+  (product2 identity 1 next a))
+
+;; Ex 1.32
+
+;; a)
+
+(define (accumulate combiner null-value term a next b)
+  (define (iter a result)
+    (if (> a b)
+        result
+        (iter (next a) (combiner (term a) result))))
+  (iter a null-value))
+
+(define (a-sum term a next b)
+  (accumulate + 0 term a next b))
+
+(define (a-product term a next b)
+  (accumulate * 1 term a next b))
+
+;; Now we can easily use a-sum to define sum-cubes, or a-product to define factorial.
+
+;; b)
+
+(define (accumulate2 combiner null-value term a next b)
+  (if (> a b)
+      null-value
+      (combiner (term a)
+                (accumulate2 combiner null-value term (next a) next b))))
+
+;; Then, eg:
+
+(define (a-product2 term a next b)
+  (accumulate2 * 1 term a next b))
+
+;; Ex 1.33
+
+(define (filtered-accumulate filter combiner null-value term a next b)
+  (define (iter a result)
+    (cond ((> a b) result)
+          ((filter a) (iter (next a) (combiner (term a) result)))
+          (else (iter (next a) result))))
+  (iter a null-value))
+
+;; So then ...
+
+(define (inc x) (+ x 1))
+
+(define (sum-prime-squares a b)
+  (filtered-accumulate prime? + 0 square a inc b))

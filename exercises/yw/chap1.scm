@@ -128,14 +128,14 @@
 
 ;; Ex 1.17
 
-(define (double x)
+(define (doub x)
   (* x 2))
 (define (halve x)
   (/ x 2))
 
 (define (fast-* a b)
   (cond ((= b 0) 0)
-        ((even? b) (double (fast-* a (halve b))))
+        ((even? b) (doub (fast-* a (halve b))))
         (else (+ a (fast-* a (- b 1))))))
 
 ;; Ex 1.18
@@ -145,7 +145,7 @@
 
 (define (fast-*-iter a b sum)
   (cond ((= b 0) sum)
-        ((even? b) (fast-*-iter (double a) (halve b) sum))
+        ((even? b) (fast-*-iter (doub a) (halve b) sum))
         (else (fast-*-iter a (- b 1) (+ sum a)))))
 
 ;; SEC 1.2.6 Example: Testing for Primality
@@ -474,3 +474,198 @@
 
 (define (sum-prime-squares a b)
   (filtered-accumulate prime? + 0 square a inc b))
+
+;; SEC 1.3.2 Constructing Procedures Using lambda
+
+;; Ex 1.34
+
+(define (f g)
+  (g 2))
+;; Calling (f f) evaluates to (f 2) which returns
+;; an error because 2 is not a procedure.
+
+
+;; SEC 1.3.3 Procedures as General Methods
+
+;; Ex 1.35
+
+(define tolerance 0.00001)
+
+(define (fixed-point f first-guess)
+  (define (close-enough? v1 v2)
+    (< (abs (- v1 v2)) tolerance))
+  (define (try guess)
+    (let ((next (f guess)))
+      (if (close-enough? guess next)
+          next
+          (try next))))
+  (try first-guess))
+
+(define (golden-ratio n)
+  (fixed-point (lambda (x) (+ 1 (/ 1 x))) n)) ;; ... Success!
+
+;; Ex 1.36
+
+(define (verbose-fixed-point f first-guess)
+  (define (close-enough? v1 v2)
+    (< (abs (- v1 v2)) tolerance))
+  (define (try guess)
+    (let ((next (f guess)))
+      (display guess)
+      (newline)
+      (if (close-enough? guess next)
+          next
+          (try next))))
+  (try first-guess))
+
+;; First, without average damping:
+
+(define (x2x-is-k n)
+  (verbose-fixed-point (lambda (x) (/ (log 1000) (log x))) n))
+
+;; Then, WITH average damping:
+
+(define (damp-x2x-is-k n)
+  (verbose-fixed-point (lambda (x) (average x (/ (log 1000) (log x)))) n))
+
+;; Without damping: 34 steps to get within tolerance.
+;; With damping: 10 steps to get within tolerance.
+;; We have a pretty clear winner!
+
+;; Ex 1.37 (k-term finite continued fractions)
+
+;; a)
+
+(define (cont-frac n d k)
+  (define (cont-frac-count i)
+    (if (= i k)
+        (/ (n i) (d i))
+        (/ (n i) (+ (d i) (cont-frac-count (+ i 1))))))
+  (cont-frac-count 1))
+
+;; 1/(golden ratio) = golden ratio - 1 = 2/(1 + (sqrt 5)) = 0.6180339888 or so.
+;; My (cont-frac) function is accurate to 4 decimal places when k = 11 or greater.
+
+;; b) (this time, in iterative)
+
+(define (cont-frac2 n d k)
+  (define (cont-frac-iter i result)
+    (if (= i 0)
+        result
+        (cont-frac-iter (- i 1) (/ (n i) (+ (d i) result)))))
+  (cont-frac-iter k 0))
+
+;; Ex 1.38 (approximations to e)
+
+(define (approx-e k)
+  (define (d i)
+    (if (= 0 (remainder (+ i 1) 3))
+        (* 2 (/ (+ i 1) 3))
+        1))
+  (+ 2
+     (cont-frac (lambda (i) 1.0)
+                 d
+                 k)))
+
+;; Ex 1.39 (continued frac. approximation to tan)
+
+(define (tan-cf x k)
+    (define (n i)
+    (if (= 1 i)
+        x
+        (- (square x))))
+     (cont-frac n
+                (lambda (i) (- (* 2 i) 1))
+                k))
+
+;; SEC 1.3.4 Procedures as Returned Values
+
+(define dx 0.00001)
+
+(define (deriv g)
+  (lambda (x)
+    (/ (- (g (+ x dx)) (g x))
+       dx)))
+
+(define (newton-transform g)
+  (lambda (x)
+    (- x (/ (g x) ((deriv g) x)))))
+
+(define (newtons-method g guess)
+  (fixed-point (newton-transform g) guess))
+
+;; Ex 1.40 (cubic)
+
+(define (cubic a b c)
+  (lambda (x)
+    (+ (cube x)
+       (* a (square x))
+       (* b x)
+       c)))
+
+;; Which allows us to define:
+
+(define (cubic-zero a b c)
+  (newtons-method (cubic a b c) 1))
+
+;; Ex 1.41 (double)
+
+(define (double f)
+  (lambda (x)
+    (f (f x))))
+
+;; Using this procedure, (((double (double double)) inc) 5) returns 21.
+;; As it should.
+
+;; Ex 1.42 (compose)
+
+(define (compose f g)
+  (lambda (x)
+    (f (g x))))
+
+;; Ex 1.43 (repeated function)
+
+(define (repeated f n)
+  (define (repeat-iter a b i)
+    (if (= i n)
+        (lambda (x) (a x))
+        (repeat-iter (compose a b) b (+ i 1))))
+  (repeat-iter f f 1))
+
+;; Ex 1.44 (smoothed function)
+
+(define (smooth f)
+  (lambda (x)
+    (/ (+ (f x)
+          (f (+ x dx))
+          (f (- x dx)))
+       3)))
+
+;; To get the n-fold smoothed function f(x), I think
+;; you just run (((repeated smooth n) f) x).
+
+;; Ex 1.45
+
+;; !!Skip for now ... maybe do with simon
+
+;; Ex 1.46 (iterative improvement)
+
+(define (iterative-improve good-enough? improve)
+  (lambda (x)
+    (define (iter guess)
+      (if (good-enough? guess)
+          guess
+          (iter (improve guess))))
+    (iter x)))
+
+(define (new-sqrt x)
+  (define (good-enough-sqrt? guess) (< (abs (- (square guess) x)) 0.0001))
+  (define (improve-sqrt guess) (average guess (/ x guess)))
+  ((iterative-improve good-enough-sqrt? improve-sqrt) 1))
+
+(define (new-fixed-point f init)
+  (define (good-enough-fp? guess) (< (abs (- (f guess) guess)) 0.00001))
+  (define (improve-fp guess) (f guess))
+  ((iterative-improve good-enough-fp? improve-fp) init))
+
+;; These are a bit unwieldy, could be improved!

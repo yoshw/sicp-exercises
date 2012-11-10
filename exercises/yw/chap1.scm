@@ -119,8 +119,8 @@
 
 (define (fast-expt b n)
   (define (fast-expt-iter b counter a)
-    (display (* a b))
-    (display " ")
+;    (display (* a b))
+;    (display " ")
     (cond ((= counter 0) a)
 	  ((even? counter) (fast-expt-iter (square b) (/ counter 2) a))
 	  (else (fast-expt-iter b (- counter 1) (* a b)))))
@@ -461,10 +461,10 @@
 
 ;; Ex 1.33
 
-(define (filtered-accumulate filter combiner null-value term a next b)
+(define (filtered-accumulate filt? combiner null-value term a next b)
   (define (iter a result)
     (cond ((> a b) result)
-          ((filter a) (iter (next a) (combiner (term a) result)))
+          ((filt? a) (iter (next a) (combiner (term a) result)))
           (else (iter (next a) result))))
   (iter a null-value))
 
@@ -646,7 +646,96 @@
 
 ;; Ex 1.45
 
-;; !!Skip for now ... maybe do with simon
+(define (average-damp f)
+  (lambda (x) (average x (f x))))
+
+; Require 1 average-damp:
+
+(define (sqrt2 x)
+  (fixed-point (average-damp (lambda (y) (/ x y)))
+               1.0))
+(define (cbrt2 x)
+  (fixed-point (average-damp (lambda (y) (/ x (square y))))
+               1.0))
+
+; Require 2 average-damps:
+(define (4thrt x)
+  (fixed-point (average-damp (average-damp (lambda (y) (/ x (cube y)))))
+               1.0))
+(define (5thrt x)
+  (fixed-point (average-damp (average-damp (lambda (y) (/ x (* y (cube y))))))
+               1.0))
+(define (6thrt x)
+  (fixed-point (average-damp (average-damp (lambda (y) (/ x (* (square y) (cube y))))))
+               1.0))
+(define (7thrt x)
+  (fixed-point (average-damp (average-damp (lambda (y) (/ x (square (cube y))))))
+               1.0))
+
+; Require 3 average-damps:
+(define (8thrt x)
+  (fixed-point (average-damp
+                (average-damp
+                 (average-damp (lambda (y) (/ x (* y (square (cube y))))))))
+               1.0))
+(define (9thrt x)
+  (fixed-point (average-damp
+                (average-damp
+                 (average-damp (lambda (y) (/ x (* (square y) (square (cube y))))))))
+               1.0))
+(define (10thrt x)
+  (fixed-point (average-damp
+                (average-damp
+                 (average-damp (lambda (y) (/ x (cube (cube y)))))))
+               1.0))
+(define (11thrt x)
+  (fixed-point (average-damp
+                (average-damp
+                 (average-damp (lambda (y) (/ x (* y (cube (cube y))))))))
+               1.0))
+(define (12thrt x)
+  (fixed-point (average-damp
+                (average-damp
+                 (average-damp (lambda (y) (/ x (* (square y) (cube (cube y))))))))
+               1.0))
+(define (13thrt x)
+  (fixed-point (average-damp
+                (average-damp
+                 (average-damp (lambda (y) (/ x (* (cube y) (cube (cube y))))))))
+               1.0))
+(define (14thrt x)
+  (fixed-point (average-damp
+                (average-damp
+                 (average-damp (lambda (y) (/ x (* y (cube y) (cube (cube y))))))))
+               1.0))
+(define (15thrt x)
+  (fixed-point (average-damp
+                (average-damp
+                 (average-damp (lambda (y) (/ x (* (square y) (cube y) (cube (cube y))))))))
+               1.0))
+
+; Require 4 average-damps:
+(define (16thrt x)
+  (fixed-point (average-damp
+                (average-damp
+                 (average-damp
+                  (average-damp
+                   (lambda (y) (/ x (* (cube y) (cube y) (cube (cube y)))))))))
+               1.0))
+
+; SO, THEN:
+
+(define (2pow n)
+  (define (2pow-iter i p)
+    (if (> p n)
+        i
+        (2pow-iter (+ 1 i) (* 2 p))))
+  (2pow-iter 0 2))
+
+(define (nth-rt n x)
+  (fixed-point
+   ((repeated average-damp (2pow n))
+    (lambda (y) (/ x (fast-expt y (- n 1))))) 1.0))
 
 ;; Ex 1.46 (iterative improvement)
 
@@ -658,14 +747,14 @@
           (iter (improve guess))))
     (iter x)))
 
-(define (new-sqrt x)
-  (define (good-enough-sqrt? guess) (< (abs (- (square guess) x)) 0.0001))
-  (define (improve-sqrt guess) (average guess (/ x guess)))
-  ((iterative-improve good-enough-sqrt? improve-sqrt) 1))
+(define (sqrt3 x)
+  (let ((good-enough-sqrt? (lambda (guess) (< (abs (- (square guess) x)) 0.0001)))
+        (improve-sqrt (lambda (guess) (average guess (/ x guess)))))
+    ((iterative-improve good-enough-sqrt? improve-sqrt) 1)))
 
 (define (new-fixed-point f init)
-  (define (good-enough-fp? guess) (< (abs (- (f guess) guess)) 0.00001))
-  (define (improve-fp guess) (f guess))
-  ((iterative-improve good-enough-fp? improve-fp) init))
+  (let ((good-enough-fp? (lambda (guess) (< (abs (- (f guess) guess)) 0.00001)))
+        (improve-fp (lambda (guess) (f guess))))
+    ((iterative-improve good-enough-fp? improve-fp) init)))
 
-;; These are a bit unwieldy, could be improved!
+;; THUS ENDS CHAPTER 1!

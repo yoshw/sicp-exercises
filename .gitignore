@@ -1,3 +1,5 @@
 *.pdf
 *.scm~
 *.un~
+*/compiled
+.#*

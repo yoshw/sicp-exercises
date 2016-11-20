@@ -118,35 +118,41 @@
   (= (remainder x 2) 0))
 
 (define (fast-expt b n)
-  (define (fast-expt-iter b counter a)
-;    (display (* a b))
-;    (display " ")
-    (cond ((= counter 0) a)
-	  ((even? counter) (fast-expt-iter (square b) (/ counter 2) a))
-	  (else (fast-expt-iter b (- counter 1) (* a b)))))
-  (fast-expt-iter b n 1))
+  (define (fast-expt-iter base pwr a)
+    (cond ((= pwr 0)    a)
+          ((even? pwr) (fast-expt-iter (square base) (/ pwr 2) a))
+          (else        (fast-expt-iter base          (- pwr 1) (* a base)))
+          )
+    )
+  (fast-expt-iter b n 1)
+  )
 
 ;; Ex 1.17
 
-(define (doub x)
-  (* x 2))
+(define (double x)
+  (+ x x))
 (define (halve x)
   (/ x 2))
 
 (define (fast-* a b)
-  (cond ((= b 0) 0)
-        ((even? b) (doub (fast-* a (halve b))))
-        (else (+ a (fast-* a (- b 1))))))
+  (cond ((= b 0)    0)
+        ((even? b) (double (fast-* a (halve b))))
+        (else      (+ a (fast-* a (- b 1))))
+        )
+  )
 
 ;; Ex 1.18
 
 (define (faster-* a b)
-  (fast-*-iter a b 0))
+  (define (iter a b acc)
+    (cond ((= b 0)    acc)
+          ((even? b) (iter (double a) (halve b) acc))
+          (else      (iter a (- b 1) (+ acc a)))
+          )
+    )
+  (iter a b 0)
+  )
 
-(define (fast-*-iter a b sum)
-  (cond ((= b 0) sum)
-        ((even? b) (fast-*-iter (doub a) (halve b) sum))
-        (else (fast-*-iter a (- b 1) (+ sum a)))))
 
 ;; SEC 1.2.6 Example: Testing for Primality
 
@@ -359,34 +365,28 @@
 
 ;; SEC 1.3.1 Procedures as Arguments
 
+;; Ex 1.30
+
+(define (sum term a next b)
+  (define (iter curr result)
+    (if (> curr b)
+        result
+        (iter (next curr) (+ (term curr) result))))
+  (iter a 0))
+
 ;; Ex 1.29
 
 (define (simpsons-int f a b n)
   (define h (/ (- b a) n))
-  (define (simpsons-sum f a b n k)
-    (define (next a)
-      (+ a h))
-    (cond ((> k n) 0)
-          ((or (= k 0) (= k n))
-           (+ (f a)
-              (simpsons-sum f (next a) b n (+ k 1))))
-          ((even? k)
-           (+ (* 2 (f a))
-              (simpsons-sum f (next a) b n (+ k 1))))
-          (else
-           (+ (* 4 (f a))
-              (simpsons-sum f (next a) b n (+ k 1))))))
-  (* (simpsons-sum f a b n 0)
-     (/ h 3)))
-
-;; Ex 1.30
-
-(define (sum term a next b)
-  (define (iter a result)
-    (if (> a b)
-        result
-        (iter (next a) (+ (term a) result))))
-  (iter a 0))
+  (define (next a) (+ a
+                      (* 2 h))
+    )
+  (define (term a) (+ (f a)
+                      (* 4 (f (+ a h)))
+                      (f (next a)))
+    )
+  (* (/ h 3) (sum term a next b))
+  )
 
 ;; Ex 1.31
 
@@ -461,10 +461,10 @@
 
 ;; Ex 1.33
 
-(define (filtered-accumulate filt? combiner null-value term a next b)
+(define (filtered-accumulate pred? combiner null-value term a next b)
   (define (iter a result)
     (cond ((> a b) result)
-          ((filt? a) (iter (next a) (combiner (term a) result)))
+          ((pred? a) (iter (next a) (combiner (term a) result)))
           (else (iter (next a) result))))
   (iter a null-value))
 
@@ -537,11 +537,14 @@
 ;; a)
 
 (define (cont-frac n d k)
-  (define (cont-frac-count i)
+  (define (recur i)
     (if (= i k)
         (/ (n i) (d i))
-        (/ (n i) (+ (d i) (cont-frac-count (+ i 1))))))
-  (cont-frac-count 1))
+        (/ (n i) (+ (d i) (recur (+ i 1))))
+        )
+    )
+  (recur 1)
+  )
 
 ;; 1/(golden ratio) = golden ratio - 1 = 2/(1 + (sqrt 5)) = 0.6180339888 or so.
 ;; My (cont-frac) function is accurate to 4 decimal places when k = 11 or greater.
@@ -549,11 +552,15 @@
 ;; b) (this time, in iterative)
 
 (define (cont-frac2 n d k)
-  (define (cont-frac-iter i result)
+  (define (iter i acc)
     (if (= i 0)
-        result
-        (cont-frac-iter (- i 1) (/ (n i) (+ (d i) result)))))
-  (cont-frac-iter k 0))
+        acc
+        (let ((newacc (/ (n i) (+ (d i) acc))))
+          (iter (- i 1) newacc))
+        )
+    )
+  (iter k 0)
+  )
 
 ;; Ex 1.38 (approximations to e)
 
@@ -571,9 +578,10 @@
 
 (define (tan-cf x k)
     (define (n i)
-    (if (= 1 i)
-        x
-        (- (square x))))
+      (if (= 1 i)
+          x
+          (- (square x)))
+      )
      (cont-frac n
                 (lambda (i) (- (* 2 i) 1))
                 k))
@@ -608,13 +616,13 @@
 (define (cubic-zero a b c)
   (newtons-method (cubic a b c) 1))
 
-;; Ex 1.41 (double)
+;; Ex 1.41 (double-f)
 
-(define (double f)
+(define (double-f f)
   (lambda (x)
     (f (f x))))
 
-;; Using this procedure, (((double (double double)) inc) 5) returns 21.
+;; Using this procedure, (((double-f (double-f double-f)) inc) 5) returns 21.
 ;; As it should.
 
 ;; Ex 1.42 (compose)
@@ -626,11 +634,11 @@
 ;; Ex 1.43 (repeated function)
 
 (define (repeated f n)
-  (define (repeat-iter a b i)
+  (define (iter acc i)
     (if (= i n)
-        (lambda (x) (a x))
-        (repeat-iter (compose a b) b (+ i 1))))
-  (repeat-iter f f 1))
+        acc
+        (iter (compose f acc) (+ i 1))))
+  (iter f 1))
 
 ;; Ex 1.44 (smoothed function)
 
@@ -725,36 +733,41 @@
 
 ; SO, THEN:
 
-(define (2pow n)
-  (define (2pow-iter i p)
-    (if (> p n)
-        i
-        (2pow-iter (+ 1 i) (* 2 p))))
-  (2pow-iter 0 2))
+(define logB
+  (lambda (x B)
+    (/ (log x) (log B))))
 
 (define (nth-rt n x)
   (fixed-point
-   ((repeated average-damp (2pow n))
+   ((repeated average-damp (floor (logB n 2)))
     (lambda (y) (/ x (fast-expt y (- n 1))))) 1.0))
 
 ;; Ex 1.46 (iterative improvement)
 
 (define (iterative-improve good-enough? improve)
-  (lambda (x)
-    (define (iter guess)
-      (if (good-enough? guess)
-          guess
-          (iter (improve guess))))
-    (iter x)))
+  (define (iter guess)
+    (if (good-enough? guess)
+        guess
+        (iter (improve guess))
+        )
+    )
+  iter
+  )
 
 (define (sqrt3 x)
-  (let ((good-enough-sqrt? (lambda (guess) (< (abs (- (square guess) x)) 0.0001)))
-        (improve-sqrt (lambda (guess) (average guess (/ x guess)))))
-    ((iterative-improve good-enough-sqrt? improve-sqrt) 1)))
+  (let ((good-enough? (lambda (guess) (< (abs (- (square guess) x)) 0.0001)))
+        (improve      (lambda (guess) (average guess (/ x guess))))
+        )
+    ((iterative-improve good-enough? improve) 1.0)
+    )
+  )
 
-(define (new-fixed-point f init)
-  (let ((good-enough-fp? (lambda (guess) (< (abs (- (f guess) guess)) 0.00001)))
-        (improve-fp (lambda (guess) (f guess))))
-    ((iterative-improve good-enough-fp? improve-fp) init)))
+(define (fixed-point2 f init)
+  (let ((good-enough? (lambda (guess) (< (abs (- (f guess) guess)) 0.00001)))
+        (improve      (lambda (guess) (f guess)))
+        )
+    ((iterative-improve good-enough? improve) init)
+    )
+  )
 
 ;; THUS ENDS CHAPTER 1!

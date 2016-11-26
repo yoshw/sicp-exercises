@@ -11,21 +11,21 @@
 ;; Ex 2.17
 
 ; Return a list containing only the last element of a given (nonempty) list.
-(define (last-pair list1)
-  (if (null? (cdr list1))
-      (list (car list1))
-      (last-pair (cdr list1))))
+(define (last-pair lst)
+  (if (null? (cdr lst))
+      (list (car lst))
+      (last-pair (cdr lst))))
 
 ;; Ex 2.18
 
 ; A procedure that takes a list as argument
 ; and returns a list of the same elements in reverse order.
-(define (reverse list1)
-  (define (reverse-iter inl outl)
-    (if (null? inl)
-        outl
-        (reverse-iter (cdr inl) (cons (car inl) outl))))
-  (reverse-iter list1 (list)))
+(define (reverse lst)
+  (define (iter items acc)
+    (if (null? items)
+        acc
+        (iter (cdr items) (cons (car items) acc))))
+  (iter lst '()))
 
 ;; Ex 2.19
 (define us-coins (list 50 25 10 5 1))
@@ -60,21 +60,19 @@
 
 ; Main procedure to return a list of all arguments
 ; that match parity of first argument, x.
-(define (same-parity x . y)
-  (define (iter a b)
-    (cond ((null? a)
-           b)
-          ((same-par? x (car a))
-           (iter (cdr a) (append b (list (car a)))))
-          (else
-           (iter (cdr a) b))))
-  (iter y (list x)))
+(define (same-parity x . rest)
+  (cons x (filter (lambda (y) (same-par? x y)) rest)))
+
+(define (filter p lst)
+  (cond ((null? lst)   '())
+        ((p (car lst)) (cons (car lst) (filter p (cdr lst))))
+        (else          (filter p (cdr lst)))))
 
 ;; Ex 2.21
 
 (define (square-list items)
   (if (null? items)
-      nil
+      '()
       (cons (square (car items))
             (square-list (cdr items)))))
 
@@ -98,9 +96,128 @@
 ;; Ex 2.23
 
 (define (my-for-each proc items)
-  (define (iter list)
-    (cond ((null? list) #f)
-          (else
-           (proc (car list))
-           (iter (cdr list)))))
-  (iter items))
+  (cond ((null? items) true)
+        (else (proc (car items))
+              (my-for-each proc (cdr items)))
+        ))
+
+;; Ex 2.24
+;; (1 (2 (3 4)))
+
+;; Ex 2.25
+
+(define (cadaddr x) (car (cdr (car (cdr (cdr x))))))
+(define seven1 (cadaddr (list 1 3 (list 5 7) 9)))
+
+(define (caar x) (car (car x)))
+(define seven2 (caar (list (list 7))))
+
+(define (cadadadadadadr x) (car (cdr (car (cdr (car (cdr (car (cdr (car (cdr (car (cdr x)))))))))))))
+(define seven3 (cadadadadadadr (list 1 (list 2 (list 3 (list 4 (list 5 (list 6 7))))))))
+
+;; Ex 2.26
+;; (1 2 3 4 5 6)
+;; ((1 2 3) 4 5 6)
+;; ((1 2 3) (4 5 6))
+
+;; Ex 2.27
+(define (leaf? t)
+  (not (pair? t)))
+
+(define (deep-reverse x)
+  (define (iter lst acc)
+    (cond ((null? lst)       acc)
+          ((leaf? (car lst)) (iter (cdr lst) (cons (car lst) acc)))
+          (else              (iter (cdr lst)
+                                   (cons (deep-reverse (car lst)) acc)))
+          ))
+  (iter x '()))
+
+;; Ex 2.28
+(define (fringe t)
+  (cond ((null? t)       '())
+        ((leaf? (car t)) (cons (car t) (fringe (cdr t))))
+        (else            (append (fringe (car t)) (fringe (cdr t))))
+        ))
+
+;; Ex 2.28
+(define (make-mobile left right) (list left right))
+(define (make-branch length structure) (list length structure))
+
+;; a
+(define (left-branch m) (car m))
+(define (right-branch m) (car (cdr m)))
+
+(define (branch-length b) (car b))
+(define (branch-structure b) (car (cdr b)))
+
+;; b
+(define (total-weight m)
+  (+ (branch-weight (left-branch m))
+     (branch-weight (right-branch m))))
+
+(define (branch-weight b)
+  (let ((s (branch-structure b)))
+    (if (pair? s)
+        (total-weight s)
+        s)
+    )
+  )
+
+;; c
+(define (balanced-mobile? m)
+  (let ((lb (left-branch m))
+        (rb (right-branch m))
+        (lbl (branch-length (left-branch m)))
+        (rbl (branch-length (right-branch m))))
+    (and (= (* lbl (branch-weight lb))
+            (* rbl (branch-weight rb)))
+         (balanced-branch? lb)
+         (balanced-branch? rb)
+         )
+    )
+  )
+
+(define (balanced-branch? b)
+  (let ((s (branch-structure b)))
+    (if (pair? s)
+        (balanced-mobile? s)
+        true)
+    )
+  )
+
+;; d - only the selectors would need to change
+
+;; Ex 2.30
+(define (square-tree t)
+  (cond ((null? t)       '())
+        ((leaf? (car t)) (cons (square (car t))
+                               (square-tree (cdr t))))
+        (else            (cons (square-tree (car t))
+                               (square-tree (cdr t))))
+        )
+  )
+
+(define (square-tree2 t)
+  (map (lambda (subt)
+         (if (pair? subt)
+             (square-tree2 subt)
+             (square subt)))
+       t))
+
+;; Ex 2.31
+(define (tree-map f t)
+  (map (lambda (subt)
+         (if (pair? subt)
+             (tree-map f subt)
+             (f subt)))
+       t))
+
+(define (square-tree3 t) (tree-map square t))
+
+;; Ex 2.32
+(define (subsets s)
+  (if (null? s)
+      (list '())
+      (let ((rest (subsets (cdr s))))
+        (append rest (map (lambda (t) (cons (car s) t)) rest)))))

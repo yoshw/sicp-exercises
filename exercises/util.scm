@@ -12,8 +12,7 @@
          fast-prime?
          inc
          deriv
-         gcd
-         nil)
+         gcd)
 
 (define (square x) (* x x))
 (define (cube x) (* x x x))
@@ -83,5 +82,3 @@
   (if (= b 0)
       a
       (gcd b (remainder a b))))
-
-(define nil (list))

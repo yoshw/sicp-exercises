@@ -75,35 +75,27 @@
 
 ;; Ex 2.3
 
-(define (make-rect l w)
-  (let ((a (make-point 0 0))
-        (b (make-point l 0))
-        (c (make-point 0 w)))
-    (cons (make-segment a b)
-          (make-segment a c))))
+(define (make-rect bottom-left top-right)
+  (make-segment bottom-left top-right))
+(define (bottom-left-rect r) (car r))
+(define (top-right-rect r) (cdr r))
 
-(define (rect-length x) (car (cdr (car x))))
-(define (rect-width x) (cdr (cdr (cdr x))))
+(define (width-rect r)
+  (- (x-point (top-right-rect r))
+     (x-point (bottom-left-rect r))))
 
-(define (rect-perimeter x)
+(define (height-rect r)
+  (- (y-point (top-right-rect r))
+     (y-point (bottom-left-rect r))))
+
+(define (perim-rect r)
   (* 2
-     (+ (rect-length x)
-        (rect-width x))))
+     (+ (width-rect r)
+        (height-rect r))))
 
-(define (rect-area x)
-  (* (rect-length x)
-     (rect-width x)))
-
-;; Now, a different representation of rectangles in a plane:
-
-(define (make-rect2 l w origin)
-  (cons origin (make-point l w)))
-
-(define (rect-length2 x) (car (cdr x)))
-(define (rect-width2 x) (cdr (cdr x)))
-
-;; Using this alternate representation, rect-area and rect-perimeter
-;; still work as long as you substitute rect-width2 and rect-length2.
+(define (area-rect r)
+  (* (width-rect r)
+     (height-rect r)))
 
 ;; And for kicks ...
 
@@ -122,33 +114,25 @@
 
 ;; Ex 2.5
 
-;; Procedure which takes a number and returns the highest power of 2
-;; which factors the number.
-(define (find-2-power x)
-  (define (find-2-power-iter power)
-    (if (not (even? (/ x (fast-expt 2 power))))
-        power
-        (find-2-power-iter (+ 1 power))))
-  (find-2-power-iter 0))
-
-;; Ditto for powers of 3.
-(define (find-3-power x)
-  (define (find-3-power-iter power)
-    (if (not (divides? 3 (/ x (fast-expt 3 power))))
-        power
-        (find-3-power-iter (+ 1 power))))
-  (find-3-power-iter 0))
-
-;; Putting it together to make the pair constructors and selectors
 (define (exp-cons x y)
   (* (fast-expt 2 x)
      (fast-expt 3 y)))
 
 (define (exp-car x)
-  (find-2-power x))
+  (define (iter p rem)
+    (if (even? rem)
+        (iter (+ 1 p) (/ rem 2))
+        p))
+  (iter 0 x)
+  )
 
 (define (exp-cdr x)
-  (find-3-power x))
+  (define (iter p rem)
+    (if (divides? 3 rem)
+        (iter (+ 1 p) (/ rem 3))
+        p))
+  (iter 0 x)
+  )
 
 ;; Ex 2.6
 
@@ -227,12 +211,12 @@
 ;; Ex 2.10
 
 (define (spans-zero? x)
-  (and (< 0 (upper-bound x))
-       (> 0 (lower-bound x))))
+  (and (<= 0 (upper-bound x))
+       (>= 0 (lower-bound x))))
 
 (define (div-interval x y)
   (if (spans-zero? y)
-      (error "Denominator must not span 0." y)
+      (error "Divisor spans zero -- DIV-INTERVAL" y)
       (mul-interval x
                     (make-interval (/ 1.0 (upper-bound y))
                                    (/ 1.0 (lower-bound y))))))
@@ -316,19 +300,18 @@
   (/ (- (upper-bound i) (lower-bound i)) 2))
 
 (define (make-center-percent c p)
-  (make-interval (- c (/ (* c p) 100.0))
-                 (+ c (/ (* c p) 100.0))))
+  (make-interval (- c (* c (/ p 100.0)))
+                 (+ c (* c (/ p 100.0)))))
 
 (define (percent i)
-  (* 100.0 (/ (width i) (center i))))
+  (* 100.0
+     (/ (width i) (center i))))
 
 ;; Ex 2.13
 
+;; tolerance of the product is approximately sum of the tolerances
 (define (int-prod-tolerance x y)
-  (let ((p (percent x))
-        (q (percent y)))
-    (/ (* 10000 (+ p q))
-       (+ 10000 (* p q)))))
+  (+ (percent x) (percent y)))
 
 ;; Ex 2.14
 
